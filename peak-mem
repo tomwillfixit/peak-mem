@@ -1,6 +1,16 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
+echo "\n*** Peak Memory Usage per PID ***\n"
 highest_memory_kb=0
+
+# check that ps exists
+
+if [ $(command -v ps) ];then
+    true 
+else
+    echo "Sorry, peak-mem can't be run without ps installed. Exiting"
+    exit 1
+fi
 
 # generate list of active pids and programs
 ps -e |grep -v PID |awk '{print $1, $4}' > /tmp/pid.list
@@ -15,13 +25,13 @@ do
         peak_mem_kb=$(grep VmPeak /proc/$pid/status |awk '{print $2}')
         peak_mem_mb=$(echo $peak_mem_kb | awk '{$1=$1/1024; print $1,"MB";}')
         if [ "$peak_mem_kb" -gt "$highest_memory_kb" ];then
-            high_memory_program="[$program] is using the most memory : $peak_mem_mb"
+            high_memory_program="[$program] peak memory usage : $peak_mem_mb"
             highest_memory_kb=$peak_mem_kb
         fi
         if [ "${peak_mem_mb}" ];then
-            echo "    [$program] : $peak_mem_mb"
+            echo "[$program] : $peak_mem_mb"
         fi
     fi
 done < /tmp/pid.list
 
-echo -e "\n$high_memory_program"
+echo "\n$high_memory_program\n"
