@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+highest_memory_kb=0
+
+# generate list of active pids and programs
+ps -e |grep -v PID |awk '{print $1, $4}' > /tmp/pid.list
+
+# loop through pids and detect peak memory usage
+while read -r line;
+do
+    pid=$(echo ${line} |awk '{print $1}')
+    program=$(echo ${line} |awk '{print $2}')
+    # check if status file exists for process. Sometimes it doesn't exist.
+    if [ -f /proc/$pid/status ];then
+        peak_mem_kb=$(grep VmPeak /proc/$pid/status |awk '{print $2}')
+        peak_mem_mb=$(echo $peak_mem_kb | awk '{$1=$1/1024; print $1,"MB";}')
+        if [ "$peak_mem_kb" -gt "$highest_memory_kb" ];then
+            high_memory_program="[$program] is using the most memory : $peak_mem_mb"
+            highest_memory_kb=$peak_mem_kb
+        fi
+        if [ "${peak_mem_mb}" ];then
+            echo "    [$program] : $peak_mem_mb"
+        fi
+    fi
+done < /tmp/pid.list
+
+echo -e "\n$high_memory_program"
